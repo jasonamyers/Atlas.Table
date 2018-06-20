@@ -30,6 +30,11 @@ abstract class TableEvents
     {
     }
 
+    public function filterInsertData(Table $table, array &$copy) : void
+    {
+        $table->filter($copy);
+    }
+
     public function modifyInsertRow(Table $table, Row $row, Insert $insert) : void
     {
     }
@@ -45,6 +50,11 @@ abstract class TableEvents
 
     public function beforeUpdateRow(Table $table, Row $row) : void
     {
+    }
+
+    public function filterUpdateData(Table $table, array &$diff) : void
+    {
+        $table->filter($diff);
     }
 
     public function modifyUpdateRow(Table $table, Row $row, Update $update) : void

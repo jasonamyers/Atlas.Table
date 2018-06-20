@@ -19,6 +19,7 @@ use Atlas\Query\QueryFactory;
 use Atlas\Query\Select;
 use Atlas\Query\Update;
 use Atlas\Table\Exception;
+use Atlas\Table\Filter\Filter;
 use PDOStatement;
 
 abstract class Table
@@ -44,6 +45,8 @@ abstract class Table
     protected $connectionLocator;
 
     protected $tableEvents;
+
+    protected $filter;
 
     protected $primaryKey;
 
@@ -122,13 +125,15 @@ abstract class Table
     public function insertRowPrepare(Row $row) : Insert
     {
         $this->tableEvents->beforeInsertRow($this, $row);
-
         $insert = $this->insert();
-        $cols = $row->getArrayCopy();
+
+        $copy = $row->getArrayCopy();
         if (static::AUTOINC_COLUMN !== null) {
-            unset($cols[static::AUTOINC_COLUMN]);
+            unset($copy[static::AUTOINC_COLUMN]);
         }
-        $insert->columns($cols);
+        $this->tableEvents->filterInsertData($this, $copy);
+
+        $insert->columns($copy);
 
         $this->tableEvents->modifyInsertRow($this, $row, $insert);
         return $insert;
@@ -171,8 +176,8 @@ abstract class Table
     public function updateRowPrepare(Row $row) : Update
     {
         $this->tableEvents->beforeUpdateRow($this, $row);
-
         $update = $this->update();
+
         $diff = $row->getArrayDiff();
         foreach (static::PRIMARY_KEY as $primaryCol) {
             if (array_key_exists($primaryCol, $diff)) {
@@ -182,6 +187,8 @@ abstract class Table
             $update->where("{$primaryCol} = ", $row->$primaryCol);
             unset($diff[$primaryCol]);
         }
+
+        $this->tableEvents->filterUpdateData($this, $diff);
         $update->columns($diff);
 
         $this->tableEvents->modifyUpdateRow($this, $row, $update);
@@ -271,5 +278,21 @@ abstract class Table
         $this->tableEvents->modifySelectedRow($this, $row);
         $row->init($row::SELECTED);
         return $row;
+    }
+
+    public function filter(array &$data) : void
+    {
+        if ($this->filter === null) {
+            $this->filter = $this->newFilter();
+        }
+
+        $this->filter->assert($data);
+    }
+
+    protected function newFilter() : Filter
+    {
+        $driver = ucfirst($this->getWriteConnection()->getDriverName());
+        $class = "Atlas\Table\Filter\\{$driver}Filter";
+        return new $class(static::COLUMNS);
     }
 }

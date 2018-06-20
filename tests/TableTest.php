@@ -237,7 +237,7 @@ class TableTest extends \PHPUnit\Framework\TestCase
         );
 
         // then modify and try to update, should fail
-        $row->name = 'Annabelle Lee';
+        $row->name = 'Annabellx';
         $this->expectException(Exception::CLASS);
         $this->expectExceptionMessage('Expected 1 row affected, actual 0.');
         $this->table->updateRow($row);

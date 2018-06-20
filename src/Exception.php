@@ -68,4 +68,10 @@ class Exception extends \Exception
             . "'; got '{$value}' instead.";
         return new Exception($message);
     }
+
+    public static function invalidData($reason, $column)
+    {
+        $message = "{$reason}: {$column}";
+        return new Exception($message);
+    }
 }
